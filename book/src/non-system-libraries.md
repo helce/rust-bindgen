@@ -14,11 +14,9 @@ int hello();
 
 Given that the library has not been compiled yet, we need to modify the
 `build.rs` build script to compile the `hello.c` source file into a static
-libary:
+library:
 
 ```rust,ignore
-extern crate bindgen;
-
 use std::env;
 use std::path::PathBuf;
 

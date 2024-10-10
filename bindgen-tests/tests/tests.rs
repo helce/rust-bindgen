@@ -1,9 +1,3 @@
-extern crate bindgen;
-extern crate clap;
-#[cfg(feature = "logging")]
-extern crate env_logger;
-extern crate shlex;
-
 use bindgen::{clang_version, Builder};
 use owo_colors::{OwoColorize, Style};
 use similar::{ChangeTag, TextDiff};
@@ -473,6 +467,42 @@ fn test_multiple_header_calls_in_builder() {
 }
 
 #[test]
+fn test_headers_call_in_builder() {
+    let actual = builder()
+        .headers([
+            concat!(env!("CARGO_MANIFEST_DIR"), "/tests/headers/func_ptr.h"),
+            concat!(env!("CARGO_MANIFEST_DIR"), "/tests/headers/char.h"),
+        ])
+        .clang_arg("--target=x86_64-unknown-linux")
+        .generate()
+        .unwrap()
+        .to_string();
+
+    let actual = format_code(actual).unwrap();
+
+    let expected_filename = concat!(
+        env!("CARGO_MANIFEST_DIR"),
+        "/tests/expectations/tests/test_multiple_header_calls_in_builder.rs"
+    );
+    let expected = include_str!(concat!(
+        env!("CARGO_MANIFEST_DIR"),
+        "/tests/expectations/tests/test_multiple_header_calls_in_builder.rs"
+    ));
+    let expected = format_code(expected).unwrap();
+
+    if actual != expected {
+        println!("Generated bindings differ from expected!");
+        error_diff_mismatch(
+            &actual,
+            &expected,
+            None,
+            Path::new(expected_filename),
+        )
+        .unwrap();
+    }
+}
+
+#[test]
 fn test_multiple_header_contents() {
     let actual = builder()
         .header_contents("test.h", "int foo(const char* a);")
@@ -523,6 +553,61 @@ fn test_mixed_header_and_header_contents() {
         env!("CARGO_MANIFEST_DIR"),
         "/tests/expectations/tests/test_mixed_header_and_header_contents.rs"
     ));
+    let expected = format_code(expected).unwrap();
+    if expected != actual {
+        error_diff_mismatch(
+            &actual,
+            &expected,
+            None,
+            Path::new(expected_filename),
+        )
+        .unwrap();
+    }
+}
+
+#[test]
+fn test_macro_fallback_non_system_dir() {
+    let actual = builder()
+        .header(concat!(
+            env!("CARGO_MANIFEST_DIR"),
+            "/tests/macro_fallback_test_headers/one_header.h"
+        ))
+        .header(concat!(
+            env!("CARGO_MANIFEST_DIR"),
+            "/tests/macro_fallback_test_headers/another_header.h"
+        ))
+        .clang_macro_fallback()
+        .clang_arg(format!("-I{}/tests/headers", env!("CARGO_MANIFEST_DIR")))
+        .generate()
+        .unwrap()
+        .to_string();
+
+    let actual = format_code(actual).unwrap();
+
+    let (expected_filename, expected) = match clang_version().parsed {
+        Some((9, _)) => {
+            let expected_filename = concat!(
+                env!("CARGO_MANIFEST_DIR"),
+                "/tests/expectations/tests/libclang-9/macro_fallback_non_system_dir.rs",
+            );
+            let expected = include_str!(concat!(
+                env!("CARGO_MANIFEST_DIR"),
+                "/tests/expectations/tests/libclang-9/macro_fallback_non_system_dir.rs",
+            ));
+            (expected_filename, expected)
+        }
+        _ => {
+            let expected_filename = concat!(
+                env!("CARGO_MANIFEST_DIR"),
+                "/tests/expectations/tests/test_macro_fallback_non_system_dir.rs",
+            );
+            let expected = include_str!(concat!(
+                env!("CARGO_MANIFEST_DIR"),
+                "/tests/expectations/tests/test_macro_fallback_non_system_dir.rs",
+            ));
+            (expected_filename, expected)
+        }
+    };
     let expected = format_code(expected).unwrap();
     if expected != actual {
         error_diff_mismatch(
@@ -618,7 +703,7 @@ fn build_flags_output_helper(builder: &bindgen::Builder) {
 
     let flags_quoted: Vec<String> = command_line_flags
         .iter()
-        .map(|x| format!("{}", shlex::quote(x)))
+        .map(|x| format!("{}", shlex::try_quote(x).unwrap()))
         .collect();
     let flags_str = flags_quoted.join(" ");
     println!("{}", flags_str);

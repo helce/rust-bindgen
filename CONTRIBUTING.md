@@ -37,7 +37,9 @@ and introduce yourself.
   - [Updating the changelog](#updating-the-changelog)
   - [Merge to `main`](#merge-to-main)
   - [Tag and publish](#tag-and-publish)
-  - [Create a new release on GitHub](create-a-new-relese-on-github)
+  - [Create a new release on Github](#create-a-new-release-on-github)
+  - [What to do if a Github release fails](#what-to-do-if-a-github-release-fails)
+  - [Create a new crates.io release](#create-a-new-cratesio-release)
 
 <!-- END doctoc generated TOC please keep comment here to allow auto update -->
 
@@ -563,16 +565,19 @@ cargo release [patch|minor] --no-publish --execute
 This does the following:
 
 - Bump the version.
-- Turn the `Unreleased` section of the changelog into the section for the version being published.
+- Turn the `Unreleased` section of the changelog into the section for the version being released.
 - Update the table of contents of the changelog using `doctoc`.
 - Tag (`git tag`) the HEAD commit
-- Publish (`cargo publish`) bindgen and bindgen-cli
 - Push (`git push`) to GitHub
 
 The `patch` and `minor` refer to semver concepts:
 
 - `patch` would bump __v0.68.1__ to __v0.68.2__
-- `feature` would bump __v0.68.2__ to __v0.69.0__
+- `minor` would bump __v0.68.2__ to __v0.69.0__
+
+> NOTE:
+> We use the `--no-publish` so that the crates are only published after the release is complete.
+> This is automatic, provided the release CI job is successful.
 
 ### Create a new release on Github
 
@@ -587,8 +592,8 @@ a draft GitHub release will be created,
 to avoid notifying watchers of the repo should a CI step fail.
 
 If everything succeeds,
-bindgen cli installers for Linux/MacOS and Windows will be created,
-as well as tarballs.
+tarballs containing bindgen cli executables for Linux and MacOS
+(both for x86 and Arm) will be created.
 See `[workspace.metadata.dist]` section in Cargo.toml for the configuration.
 
 To update the release configuration,
@@ -596,14 +601,13 @@ when a new cargo-dist is available:
 
 ```
 cargo dist init # from "cargo install cargo-dist"
-cargo dist generate-ci # to update .github/workflows/release.yml
 ```
 
 ### What to do if a Github release fails
 
-If the release process failed after you run `cargo release` you can manually
+If the release process fails after you run `cargo release`, you can manually
 delete the tag and release from Github. Also remember to delete the tag locally
-by running `git tag -d`. Once all the extra changes are in the `main` branch
+by running `git tag -d`. Once all the extra changes are in the `main` branch,
 you can trigger a release by creating a new tag using `git tag` and push it
 using `git push --tag`.
 

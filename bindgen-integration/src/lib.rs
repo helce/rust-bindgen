@@ -12,7 +12,6 @@ use std::ffi::CStr;
 use std::mem;
 use std::os::raw::c_int;
 
-#[allow(unused)]
 use bindings::testing::Bar; // This type is generated from module_raw_line.
 
 type MacroInteger = isize;
@@ -289,6 +288,13 @@ fn test_custom_derive() {
 
     assert!(meter < lightyear);
     assert!(meter > micron);
+
+    // The `add_derives` callback should have added `#[derive(PartialEq, PartialOrd)]`
+    // to the `TestDeriveOnAlias` new-type alias. If it didn't, this will fail to compile.
+    let test1 = unsafe { bindings::TestDeriveOnAlias(5) };
+    let test2 = unsafe { bindings::TestDeriveOnAlias(6) };
+    assert!(test1 < test2);
+    assert!(!(test1 > test2));
 }
 
 #[test]
