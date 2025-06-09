@@ -98,7 +98,7 @@ impl ParseCallbacks for MacroCallback {
             _ => {
                 // The system might provide lots of functional macros.
                 // Ensure we did not miss handling one that we meant to handle.
-                assert!(!name.starts_with("TESTMACRO_"), "name = {}", name);
+                assert!(!name.starts_with("TESTMACRO_"), "name = {name}");
             }
         }
     }
@@ -129,6 +129,18 @@ impl ParseCallbacks for MacroCallback {
             vec!["std::cmp::PartialOrd".into()]
         } else if info.name == "TestDeriveOnAlias" {
             vec!["std::cmp::PartialEq".into(), "std::cmp::PartialOrd".into()]
+        } else {
+            vec![]
+        }
+    }
+
+    // Test the "custom attributes" capability.
+    fn add_attributes(
+        &self,
+        info: &bindgen::callbacks::AttributeInfo<'_>,
+    ) -> Vec<String> {
+        if info.name == "Test" {
+            vec!["#[cfg_attr(test, derive(PartialOrd))]".into()]
         } else {
             vec![]
         }
@@ -171,7 +183,7 @@ fn setup_macro_test() {
     let out_path = PathBuf::from(env::var("OUT_DIR").unwrap());
     let out_rust_file = out_path.join("test.rs");
     let out_rust_file_relative = out_rust_file
-        .strip_prefix(std::env::current_dir().unwrap().parent().unwrap())
+        .strip_prefix(env::current_dir().unwrap().parent().unwrap())
         .unwrap();
     let out_dep_file = out_path.join("test.d");
 
@@ -246,7 +258,7 @@ fn setup_wrap_static_fns_test() {
         .expect("Unable to generate bindings");
 
     println!("cargo:rustc-link-lib=static=wrap_static_fns"); // tell cargo to link libextern
-    println!("bindings generated: {}", bindings);
+    println!("bindings generated: {bindings}");
 
     let obj_path = out_path.join("wrap_static_fns.o");
     let lib_path = out_path.join("libwrap_static_fns.a");
