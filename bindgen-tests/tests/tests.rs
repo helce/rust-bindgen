@@ -26,9 +26,10 @@ fn should_overwrite_expected() -> bool {
         if var == "1" {
             return true;
         }
-        if var != "0" && var != "" {
-            panic!("Invalid value of BINDGEN_OVERWRITE_EXPECTED");
-        }
+        assert!(
+            var == "0" || var.is_empty(),
+            "Invalid value of BINDGEN_OVERWRITE_EXPECTED"
+        );
     }
     false
 }
@@ -56,7 +57,7 @@ fn error_diff_mismatch(
     if let Some(var) = env::var_os("BINDGEN_TESTS_DIFFTOOL") {
         //usecase: var = "meld" -> You can hand check differences
         let Some(std::path::Component::Normal(name)) =
-            filename.components().last()
+            filename.components().next_back()
         else {
             panic!("Why is the header variable so weird?")
         };
@@ -186,7 +187,7 @@ fn compare_generated_header(
             header.display(),
             looked_at,
         ),
-    };
+    }
 
     let (builder, roundtrip_builder) = builder.into_builder(check_roundtrip)?;
 
